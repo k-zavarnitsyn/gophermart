@@ -21,3 +21,9 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+# Local
+/config/local.yaml
+/config/certificates/
+/tmp/
+/docker-compose.override.yaml

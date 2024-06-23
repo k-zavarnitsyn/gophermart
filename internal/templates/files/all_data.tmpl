@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gophermart</title>
+</head>
+<body>
+<p><b>Counters</b></p>
+<ul>
+{{- range $key, $value := .Counters }}
+   <li><strong>{{ $key }}</strong>: {{ $value }}</li>
+{{- end }}
+</ul>
+<p><b>Gauges</b></p>
+<ul>
+{{- range $key, $value := .Gauges }}
+   <li><strong>{{ $key }}</strong>: {{ range $value }}{{.}} {{end}}</li>
+{{- end }}
+</ul>
+</body>
+</html>

@@ -1,0 +1,5 @@
+host: localhost
+port: 8080
+scheme: http
+#server:
+#  databaseURI: postgres://postgres:postgres@localhost:5432/gophermart?sslmode=disable

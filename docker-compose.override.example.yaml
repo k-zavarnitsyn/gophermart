@@ -1,0 +1,8 @@
+services:
+  postgresql:
+    # uncomment to disable service, if you are using outer database
+    #    image: alpine:latest # dummy image (wont start)
+    #    command: "true"
+    #    entrypoint: "true"
+    ports:
+      - 5432:5432
