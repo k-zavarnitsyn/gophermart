@@ -7,15 +7,6 @@ import (
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
 )
 
-const (
-	ContentType         = "Content-Type"
-	ContentTypeText     = "text/plain"
-	ContentTypeTextHTML = "text/html"
-	ContentTypeJSON     = "application/json"
-	ContentEncoding     = "Content-Encoding"
-	AcceptEncoding      = "Accept-Encoding"
-)
-
 var _ internal.API = (*gophermartServer)(nil)
 
 type gophermartServer struct {

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/k-zavarnitsyn/gophermart/internal/api"
 	"github.com/k-zavarnitsyn/gophermart/internal/config"
 	"github.com/k-zavarnitsyn/gophermart/internal/container"
 	"github.com/k-zavarnitsyn/gophermart/internal/middleware"
@@ -67,7 +66,7 @@ func (s *TestSuite) TestGzip() {
 		{
 			name:         "Get gzipped response",
 			method:       http.MethodPost,
-			headers:      []header{{header: api.AcceptEncoding, val: "gzip"}},
+			headers:      []header{{header: utils.AcceptEncoding, val: "gzip"}},
 			body:         rawData,
 			expectedCode: http.StatusOK,
 			expectedBody: compressedData.Bytes(),
@@ -75,7 +74,7 @@ func (s *TestSuite) TestGzip() {
 		{
 			name:         "Decompress gzipped request",
 			method:       http.MethodPost,
-			headers:      []header{{header: api.ContentEncoding, val: "gzip"}},
+			headers:      []header{{header: utils.ContentEncoding, val: "gzip"}},
 			body:         compressedData.Bytes(),
 			expectedCode: http.StatusOK,
 			expectedBody: rawData,

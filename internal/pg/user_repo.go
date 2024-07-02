@@ -45,7 +45,7 @@ func (r *UserRepo) LoginExists(ctx context.Context, login string) (bool, error) 
 
 func (r *UserRepo) FindByLoginAndPassword(ctx context.Context, login string, hashedPassword []byte) (*entity.User, error) {
 	var value entity.User
-	sql := `select * from "user" where login = $1 and password_sha = $2;`
+	sql := `SELECT * FROM "user" WHERE login = $1 AND password_sha = $2;`
 	err := pgxscan.Get(ctx, r.db, &value, sql, login, hashedPassword)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

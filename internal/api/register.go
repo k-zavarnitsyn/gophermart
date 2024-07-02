@@ -10,12 +10,12 @@ import (
 )
 
 func (s *gophermartServer) Register(w http.ResponseWriter, r *http.Request) {
-	regReq, err := utils.ReadJSON[entity.RegisterRequest](r.Body)
+	reqData, err := utils.ReadJSON[entity.RegisterRequest](r.Body)
 	if err != nil {
 		utils.SendBadRequest(w, err, "error reading register request json")
 		return
 	}
-	user, err := s.gophermart.Register(r.Context(), regReq)
+	user, err := s.gophermart.Register(r.Context(), reqData)
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginExists) {
 			utils.SendDomainError(w, err, http.StatusConflict)

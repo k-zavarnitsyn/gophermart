@@ -31,10 +31,10 @@ func (r *Router) InitRoutes(a internal.API, withMiddlewares bool) {
 			router.Use(authMiddleware.WithAuthentication)
 		}
 
-		router.Post("/api/user/orders", a.PostOrders)
+		router.Post("/api/user/orders", a.PostOrder)
 		router.Get("/api/user/orders", a.GetOrders)
 		router.Get("/api/user/balance", a.GetBalance)
 		router.Post("/api/user/balance/withdraw", a.Withdraw)
-		router.Get("/api/user/withdrawals", a.Withdrawals)
+		router.Get("/api/user/withdrawals", a.GetWithdrawals)
 	})
 }

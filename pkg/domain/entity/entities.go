@@ -1,12 +1,24 @@
 package entity
 
 import (
-	"encoding/json"
+	"time"
 
 	"github.com/gofrs/uuid"
 	"github.com/golang-jwt/jwt/v5"
-	log "github.com/sirupsen/logrus"
 )
+
+const (
+	// OrderStatusNew заказ загружен в систему, но не попал в обработку
+	OrderStatusNew = OrderStatus("NEW")
+	// OrderStatusProcessing вознаграждение за заказ рассчитывается
+	OrderStatusProcessing = OrderStatus("PROCESSING")
+	// OrderStatusInvalid система расчёта вознаграждений отказала в расчёте
+	OrderStatusInvalid = OrderStatus("INVALID")
+	// OrderStatusProcessed Данные по заказу проверены и информация о расчёте успешно получена
+	OrderStatusProcessed = OrderStatus("PROCESSED")
+)
+
+type OrderStatus string
 
 type JwtClaims struct {
 	jwt.RegisteredClaims
@@ -15,35 +27,29 @@ type JwtClaims struct {
 }
 
 type User struct {
-	ID          uuid.UUID
-	Login       string
-	PasswordSHA []byte
+	ID          uuid.UUID `db:"id"`
+	Login       string    `db:"login"`
+	PasswordSHA []byte    `db:"password_sha"`
 }
 
-type Counter struct {
-	ID    uuid.UUID
-	Name  string
-	Value int64
+type Order struct {
+	ID        uuid.UUID   `db:"id"`
+	UserID    uuid.UUID   `db:"user_id"`
+	Number    string      `db:"number"`
+	Status    OrderStatus `db:"status"`
+	CreatedAt time.Time   `db:"created_at"`
+	Accrual   *float64    `db:"accrual"`
 }
 
-type Gauge struct {
-	ID    uuid.UUID
-	Name  string
-	Value float64
+type Balance struct {
+	Current   float64 `db:"current" json:"current"`
+	Withdrawn float64 `db:"withdrawn" json:"withdrawn"`
 }
 
-type Gophermart struct {
-	ID    string   `json:"id"`              // Имя метрики
-	MType string   `json:"type"`            // Параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
-}
-
-func (m Gophermart) String() string {
-	str, err := json.Marshal(m)
-	if err != nil {
-		log.Errorf("unable to marshal Metric: %v", err)
-	}
-
-	return string(str)
+type Withdraw struct {
+	ID          uuid.UUID `db:"id"`
+	UserID      uuid.UUID `db:"user_id"`
+	OrderNumber string    `db:"order_number"`
+	Value       float64   `db:"value"`
+	CreatedAt   time.Time `db:"created_at"`
 }

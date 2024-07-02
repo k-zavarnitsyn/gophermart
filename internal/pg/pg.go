@@ -71,3 +71,22 @@ func (p *Pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, er
 
 	return rows, err
 }
+
+// Transaction запускает все запросы функции внутри транзакции (необходимо использовать параметр tx, иначе пул самоисчерпается).
+// Возврат ошибки приводит к откату.
+func (p *Pool) Transaction(ctx context.Context, f func(ctx context.Context, tx pgx.Tx) error) (err error) {
+	tx := TxFromContext(ctx)
+	if tx == nil {
+		tx, err = p.Pool.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		ctx = TxToContext(ctx, tx)
+
+		defer func() {
+			err = commitOrRollbackPGX(ctx, tx, err, recover())
+		}()
+	}
+
+	return f(ctx, tx)
+}

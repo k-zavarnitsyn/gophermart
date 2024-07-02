@@ -15,8 +15,8 @@ type API interface {
 	// Login аутентификация пользователя
 	Login(w http.ResponseWriter, r *http.Request)
 
-	// PostOrders загрузка пользователем номера заказа для расчёта
-	PostOrders(w http.ResponseWriter, r *http.Request)
+	// PostOrder загрузка пользователем номера заказа для расчёта
+	PostOrder(w http.ResponseWriter, r *http.Request)
 
 	// GetOrders получение списка загруженных пользователем номеров заказов, статусов их обработки и информации о начислениях
 	GetOrders(w http.ResponseWriter, r *http.Request)
@@ -28,7 +28,7 @@ type API interface {
 	Withdraw(w http.ResponseWriter, r *http.Request)
 
 	// Withdrawals - получение информации о выводе средств с накопительного счёта пользователем
-	Withdrawals(w http.ResponseWriter, r *http.Request)
+	GetWithdrawals(w http.ResponseWriter, r *http.Request)
 }
 
 type Templates interface {

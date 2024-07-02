@@ -17,6 +17,7 @@ type Container struct {
 	cfg       *config.Config
 	db        *pg.Pool
 	templates *templates.Loader
+	trx       pg.Transactor
 
 	auth              *auth.Service
 	gophermartService domain.Gophermart
@@ -51,6 +52,14 @@ func (c *Container) DB() *pg.Pool {
 	return c.db
 }
 
+func (c *Container) Transactor() pg.Transactor {
+	if c.trx == nil {
+		c.trx = pg.NewTransactor(c.DB())
+	}
+
+	return c.trx
+}
+
 func (c *Container) Auth() *auth.Service {
 	if c.auth == nil {
 		c.auth = auth.New(&c.cfg.Auth)
@@ -73,7 +82,7 @@ func (c *Container) Templates() *templates.Loader {
 
 func (c *Container) Gophermart() domain.Gophermart {
 	if c.gophermartService == nil {
-		c.gophermartService = domain.NewGophermart(c.cfg, c.OrderRepo(), c.UserRepo())
+		c.gophermartService = domain.NewGophermart(c.cfg, c.Transactor(), c.OrderRepo(), c.UserRepo())
 	}
 
 	return c.gophermartService

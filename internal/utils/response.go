@@ -10,8 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	ContentType         = "Content-Type"
+	ContentTypeText     = "text/plain"
+	ContentTypeTextHTML = "text/html"
+	ContentTypeJSON     = "application/json"
+	ContentTypeJSONUTF8 = "application/json; charset=utf-8"
+	ContentEncoding     = "Content-Encoding"
+	AcceptEncoding      = "Accept-Encoding"
+)
+
 func JSONError(w http.ResponseWriter, msg string, status int) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set(ContentType, ContentTypeJSONUTF8)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	_, err := fmt.Fprintf(w, `{"error": "%s"}`, msg)
@@ -21,7 +31,7 @@ func JSONError(w http.ResponseWriter, msg string, status int) {
 }
 
 func SendError(w http.ResponseWriter, err error) {
-	if errors.Is(err, domain.DomainError) {
+	if errors.Is(err, domain.Error) {
 		if errors.Is(err, domain.ErrNotFound) {
 			SendDomainError(w, err, http.StatusNotFound)
 		} else {
@@ -54,7 +64,9 @@ func SendInternalError(w http.ResponseWriter, err error, msg string) {
 	JSONError(w, msg, http.StatusInternalServerError)
 }
 
-func SendResponse(w http.ResponseWriter, obj any) {
+func SendResponse(w http.ResponseWriter, obj any, status int) {
+	w.Header().Set(ContentType, ContentTypeJSONUTF8)
+	w.WriteHeader(status)
 	data, err := json.Marshal(obj)
 	if err != nil {
 		SendInternalError(w, err, "unable to marshal object")

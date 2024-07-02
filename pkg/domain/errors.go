@@ -1,35 +1,17 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
-var DomainError = NewError("domain error")
-var ErrNotFound = NewError("not found")
-var ErrBadRequest = NewError("bad request")
-var ErrLoginExists = NewError("login already exists")
-
-type Error struct {
-	Err error
-}
-
-func NewError(text string) error {
-	return &Error{
-		Err: errors.New(text),
-	}
-}
-
-func (d Error) Error() string {
-	return d.Err.Error()
-}
-
-func (d Error) Is(err error) bool {
-	// быстрый способ понять, что это доменная ошибка
-	if err == DomainError {
-		return true
-	}
-
-	return errors.Is(err, d.Err)
-}
-
-// func (d Error) Unwrap() error {
-// 	return d.Err
-// }
+var Error = errors.New("error")
+var ErrNotFound = fmt.Errorf("%w: not found", Error)
+var ErrBadRequest = fmt.Errorf("%w: bad request", Error)
+var ErrBadOrderNumber = fmt.Errorf("%w: bad order number format", ErrBadRequest)
+var ErrOrderNumberTooLong = fmt.Errorf("%w: order number too long", ErrBadOrderNumber)
+var ErrOrderNumberExists = fmt.Errorf("%w: order number already exists", Error)
+var ErrOrderCreatedByCurrentUser = fmt.Errorf("%w: created by current user", ErrOrderNumberExists)
+var ErrOrderCreatedByOtherUser = fmt.Errorf("%w: created by other user", ErrOrderNumberExists)
+var ErrNotEnoughAccruals = fmt.Errorf("%w: insufficient funds in the account", Error)
+var ErrLoginExists = fmt.Errorf("%w: login already exists", Error)

@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/k-zavarnitsyn/gophermart/internal/api"
 	"github.com/k-zavarnitsyn/gophermart/internal/utils"
 )
 
 func WithGzipResponse(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get(api.AcceptEncoding), "gzip") {
+		if !strings.Contains(r.Header.Get(utils.AcceptEncoding), "gzip") {
 			h.ServeHTTP(w, r)
 			return
 		}
@@ -24,14 +23,14 @@ func WithGzipResponse(h http.Handler) http.Handler {
 		defer utils.CloseWithLogging(gz, "unable to close gzip writer")
 
 		customWriter := &CustomWriter{ResponseWriter: w, Writer: gz}
-		customWriter.Header().Set(api.ContentEncoding, "gzip")
+		customWriter.Header().Set(utils.ContentEncoding, "gzip")
 		h.ServeHTTP(customWriter, r)
 	})
 }
 
 func WithGzipRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(api.ContentEncoding) != "gzip" {
+		if r.Header.Get(utils.ContentEncoding) != "gzip" {
 			h.ServeHTTP(w, r)
 			return
 		}

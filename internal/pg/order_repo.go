@@ -1,7 +1,22 @@
 package pg
 
 import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/georgysavva/scany/v2/pgxscan"
+	"github.com/gofrs/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
+	"github.com/k-zavarnitsyn/gophermart/pkg/domain/entity"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/repository"
+)
+
+const (
+	OrderNumberUniqueContraint = "order_number_uindex"
 )
 
 var _ repository.Order = &OrderRepo{}
@@ -14,177 +29,115 @@ func NewOrderRepository(db *Pool) repository.Order {
 	return &OrderRepo{db: db}
 }
 
-// func (s *OrderRepo) IncCounter(name string, value int64) error {
-// 	id, err := uuid.NewV6()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	sql := `
-// 		INSERT INTO public.counters (id, name, "value")
-// 		VALUES ($1, $2, $3)
-// 		ON CONFLICT (name) DO UPDATE
-// 		  SET "value" = counters."value" + $3;`
-// 	_, err = s.db.Exec(context.Background(), sql, id, name, value)
-//
-// 	return err
-// }
-//
-// func (s *OrderRepo) AppendGauge(name string, value float64) error {
-// 	id, err := uuid.NewV6()
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	sql := `
-// 		INSERT INTO public.gauges (id, name, value)
-// 		VALUES ($1, $2, $3);`
-// 	_, err = s.db.Exec(context.Background(), sql, id, name, value)
-//
-// 	return err
-// }
-//
-// func (s *OrderRepo) IncCounters(counters []entity.Counter) error {
-// 	if len(counters) == 0 {
-// 		return nil
-// 	}
-//
-// 	sql := strings.Builder{}
-// 	sql.WriteString(`
-// 		INSERT INTO public.counters (id, name, "value")
-// 		VALUES`)
-// 	var params []any
-// 	i := 0
-// 	for _, counter := range counters {
-// 		if counter.ID.IsNil() {
-// 			id, err := uuid.NewV6()
-// 			if err != nil {
-// 				return err
-// 			}
-// 			counter.ID = id
-// 		}
-// 		params = append(params, counter.ID, counter.Name, counter.Value)
-// 		if i > 0 {
-// 			sql.WriteString(",")
-// 		}
-// 		sql.WriteString(fmt.Sprintf(" ($%d, $%d, $%d)", i+1, i+2, i+3))
-// 		i += 3
-// 	}
-// 	sql.WriteString(`
-// 		ON CONFLICT (name) DO UPDATE
-// 		  SET "value" = counters."value" + EXCLUDED.value;`)
-//
-// 	_, err := s.db.Exec(context.Background(), sql.String(), params...)
-//
-// 	return err
-// }
-//
-// func (s *OrderRepo) AppendGauges(gauges []entity.Gauge) error {
-// 	if len(gauges) == 0 {
-// 		return nil
-// 	}
-//
-// 	sql := strings.Builder{}
-// 	sql.WriteString(`
-// 		INSERT INTO public.gauges (id, name, "value")
-// 		VALUES`)
-// 	var params []any
-// 	i := 0
-// 	for _, gauge := range gauges {
-// 		if gauge.ID.IsNil() {
-// 			id, err := uuid.NewV6()
-// 			if err != nil {
-// 				return err
-// 			}
-// 			gauge.ID = id
-// 		}
-// 		params = append(params, gauge.ID, gauge.Name, gauge.Value)
-// 		if i > 0 {
-// 			sql.WriteString(",")
-// 		}
-// 		sql.WriteString(fmt.Sprintf(" ($%d, $%d, $%d)", i+1, i+2, i+3))
-// 		i += 3
-// 	}
-//
-// 	_, err := s.db.Exec(context.Background(), sql.String(), params...)
-//
-// 	return err
-// }
-//
-// func (s *OrderRepo) GetCounter(name string) (int64, bool) {
-// 	value := int64(0)
-// 	sql := `SELECT value FROM public.counters
-// 		WHERE name = $1 LIMIT 1;`
-// 	err := pgxscan.Get(context.Background(), s.db, &value, sql, name)
-// 	if err != nil {
-// 		if !errors.Is(err, pgx.ErrNoRows) {
-// 			log.WithError(err).Error("Error getting counter")
-// 		}
-// 		return 0, false
-// 	}
-//
-// 	return value, true
-// }
-//
-// func (s *OrderRepo) GetGauge(name string) ([]float64, bool) {
-// 	var values []float64
-// 	sql := `SELECT value FROM public.gauges
-// 		WHERE name = $1
-// 		ORDER BY id;`
-// 	err := pgxscan.Get(context.Background(), s.db, values, sql, name)
-// 	if err != nil {
-// 		log.WithError(err).Error("Error getting gauges")
-// 		return nil, false
-// 	}
-//
-// 	return values, true
-// }
-//
-// func (s *OrderRepo) GetLastGauge(name string) (float64, bool) {
-// 	var value float64
-// 	sql := `SELECT value FROM public.gauges
-// 		WHERE name = $1
-// 		ORDER BY id desc LIMIT 1;`
-// 	err := pgxscan.Get(context.Background(), s.db, &value, sql, name)
-// 	if err != nil {
-// 		log.WithError(err).Error("Error getting last gauge")
-// 		return value, false
-// 	}
-//
-// 	return value, true
-// }
-//
-// func (s *OrderRepo) GetCounters() map[string]int64 {
-// 	var values []entity.Counter
-// 	sql := `SELECT * FROM public.counters;`
-// 	err := pgxscan.Select(context.Background(), s.db, &values, sql)
-// 	if err != nil {
-// 		log.WithError(err).Error("Error getting counters map")
-// 		return nil
-// 	}
-//
-// 	counters := make(map[string]int64, len(values))
-// 	for _, counter := range values {
-// 		counters[counter.Name] = counter.Value
-// 	}
-//
-// 	return counters
-// }
-//
-// func (s *OrderRepo) GetGauges() map[string][]float64 {
-// 	var values []entity.Gauge
-// 	sql := `SELECT * FROM public.gauges
-// 		ORDER BY id;`
-// 	err := pgxscan.Select(context.Background(), s.db, &values, sql)
-// 	if err != nil {
-// 		log.WithError(err).Error("Error getting gauges map")
-// 		return nil
-// 	}
-//
-// 	gauges := make(map[string][]float64)
-// 	for _, gauge := range values {
-// 		gauges[gauge.Name] = append(gauges[gauge.Name], gauge.Value)
-// 	}
-//
-// 	return gauges
-// }
+func (r *OrderRepo) Insert(ctx context.Context, order *entity.Order) error {
+	if order.ID.IsNil() {
+		var err error
+		if order.ID, err = uuid.NewV6(); err != nil {
+			return err
+		}
+	}
+
+	sql := `
+		INSERT INTO "order" (id, user_id, number, status)
+		VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(ctx, sql, order.ID, order.UserID, order.Number, order.Status)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation && pgErr.ConstraintName == OrderNumberUniqueContraint {
+			existingOrder, err2 := r.FindByNumber(ctx, order.Number)
+			if err2 != nil {
+				return fmt.Errorf("error searching order on number unique violation: %w", errors.Join(err, err2))
+			}
+			if existingOrder.UserID == order.UserID {
+				return domain.ErrOrderCreatedByCurrentUser
+			}
+			return domain.ErrOrderCreatedByOtherUser
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *OrderRepo) FindByNumber(ctx context.Context, orderNumber string) (*entity.Order, error) {
+	var value entity.Order
+	sql := `SELECT * FROM "order" WHERE number = $1;`
+	err := pgxscan.Get(ctx, r.db, &value, sql, orderNumber)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &value, err
+}
+
+func (r *OrderRepo) GetUserOrders(ctx context.Context, userID uuid.UUID) ([]entity.Order, error) {
+	var values []entity.Order
+	sql := `SELECT * FROM "order" WHERE user_id = $1;`
+	err := pgxscan.Select(ctx, r.db, &values, sql, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return values, err
+}
+
+func (r *OrderRepo) GetAccrualsSum(ctx context.Context, userID uuid.UUID) (float64, error) {
+	var value float64
+	sql := `SELECT sum(accrual) FROM "order" WHERE user_id = $1 AND status = $2;`
+	err := pgxscan.Get(ctx, r.db, &value, sql, userID, entity.OrderStatusProcessed)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, domain.ErrNotFound
+		}
+		return 0, err
+	}
+
+	return value, err
+}
+
+func (r *OrderRepo) GetWithdrawnSum(ctx context.Context, userID uuid.UUID) (float64, error) {
+	var value float64
+	sql := `SELECT sum(value) FROM withdrawn WHERE user_id = $1;`
+	err := pgxscan.Get(ctx, r.db, &value, sql, userID, entity.OrderStatusProcessed)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, domain.ErrNotFound
+		}
+		return 0, err
+	}
+
+	return value, err
+}
+
+func (r *OrderRepo) Withdraw(ctx context.Context, w *entity.Withdraw) error {
+	if w.ID.IsNil() {
+		var err error
+		if w.ID, err = uuid.NewV6(); err != nil {
+			return err
+		}
+	}
+
+	sql := `
+		INSERT INTO withdrawn (id, user_id, order_number, value)
+		VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(ctx, sql, w.ID, w.UserID, w.OrderNumber, w.Value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *OrderRepo) GetUserWithdrawals(ctx context.Context, userID uuid.UUID) ([]entity.Withdraw, error) {
+	var values []entity.Withdraw
+	sql := `SELECT * FROM withdrawn WHERE user_id = $1;`
+	err := pgxscan.Select(ctx, r.db, &values, sql, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return values, err
+}
