@@ -13,7 +13,6 @@ type gophermartServer struct {
 	cfg        *config.Config
 	auth       *auth.Service
 	gophermart domain.Gophermart
-	templates  internal.Templates
 
 	dbPinger internal.Pinger
 }
@@ -22,14 +21,12 @@ func New(
 	cfg *config.Config,
 	authService *auth.Service,
 	service domain.Gophermart,
-	tpl internal.Templates,
 	dbPinger internal.Pinger,
 ) internal.API {
 	return &gophermartServer{
 		cfg:        cfg,
 		auth:       authService,
 		gophermart: service,
-		templates:  tpl,
 		dbPinger:   dbPinger,
 	}
 }

@@ -23,12 +23,13 @@ func (s *gophermartServer) Withdraw(w http.ResponseWriter, r *http.Request) {
 		Value:       reqData.Sum,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrNotEnoughAccruals) {
+		switch {
+		case errors.Is(err, domain.ErrNotEnoughAccruals):
 			utils.SendDomainError(w, err, http.StatusPaymentRequired)
-		} else if errors.Is(err, domain.ErrBadOrderNumber) {
+		case errors.Is(err, domain.ErrBadOrderNumber):
 			utils.SendDomainError(w, err, http.StatusUnprocessableEntity)
-		} else {
-			utils.SendError(w, err)
+		default:
+			domain.SendError(w, err)
 		}
 		return
 	}

@@ -33,14 +33,15 @@ func (s *gophermartServer) PostOrder(w http.ResponseWriter, r *http.Request) {
 		Number: string(reqData),
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrBadOrderNumber) {
+		switch {
+		case errors.Is(err, domain.ErrBadOrderNumber):
 			utils.SendDomainError(w, err, http.StatusUnprocessableEntity)
-		} else if errors.Is(err, domain.ErrOrderCreatedByCurrentUser) {
+		case errors.Is(err, domain.ErrOrderCreatedByCurrentUser):
 			utils.SendDomainError(w, err, http.StatusOK)
-		} else if errors.Is(err, domain.ErrOrderCreatedByOtherUser) {
+		case errors.Is(err, domain.ErrOrderCreatedByOtherUser):
 			utils.SendDomainError(w, err, http.StatusConflict)
-		} else {
-			utils.SendError(w, err)
+		default:
+			domain.SendError(w, err)
 		}
 		return
 	}

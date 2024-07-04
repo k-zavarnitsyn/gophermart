@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/rsa"
 	"errors"
 	"flag"
 	"fmt"
@@ -17,19 +16,17 @@ import (
 )
 
 const (
-	DefaultDir         = "config"
-	DefaultFile        = "config.yaml"
-	LocalFile          = "local.yaml"
-	DefaultStorageFile = "/tmp/gophermart-db.json"
-	DefaultDSN         = ""
+	DefaultDir  = "config"
+	DefaultFile = "config.yaml"
+	LocalFile   = "local.yaml"
+	DefaultDSN  = ""
 )
 
 var Default = &Config{
-	Host:                 "localhost",
-	Port:                 8080,
-	Scheme:               "http",
-	Address:              "localhost:8080",
-	AccrualSystemAddress: DefaultStorageFile,
+	Host:    "localhost",
+	Port:    8080,
+	Scheme:  "http",
+	Address: "localhost:8080",
 
 	Log: Log{
 		Level:            log.InfoLevel,
@@ -42,6 +39,12 @@ var Default = &Config{
 		ReadHeaderTimeout: 3 * time.Second,
 		ShutdownTimeout:   10 * time.Second,
 	},
+	Auth: Auth{
+		PasswordHashKey: []byte("761b13f9e49816b818cc317f73727bbd3cfc23fa"),
+		JwtKey:          []byte("097f71603b8542794505530806457309aa86aedf46973acf72b763ed6fbb95d3"), // for developing purposes
+		ValidMethods:    []string{"RS256"},
+		CookieName:      "access_token",
+	},
 }
 
 // generation tool: https://zhwt.github.io/yaml-to-go/
@@ -49,15 +52,15 @@ var Default = &Config{
 type Option func(config *Config) error
 
 type Config struct {
-	Host                 string `yaml:"host" env:"HOST"`
-	Port                 int    `yaml:"port" env:"PORT"`
-	Scheme               string `yaml:"scheme"`
-	Address              string `env:"RUN_ADDRESS,expand"`
-	AccrualSystemAddress string `yaml:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
+	Host    string `yaml:"host" env:"HOST"`
+	Port    int    `yaml:"port" env:"PORT"`
+	Scheme  string `yaml:"scheme"`
+	Address string `env:"RUN_ADDRESS,expand"`
 
-	Log    Log    `yaml:"log"`
-	Server Server `yaml:"server"`
-	Auth   Auth   `yaml:"auth"`
+	Log     Log     `yaml:"log"`
+	Server  Server  `yaml:"server"`
+	Auth    Auth    `yaml:"auth"`
+	Accrual Accrual `yaml:"accrual"`
 }
 
 type Log struct {
@@ -77,10 +80,15 @@ type Auth struct {
 	PasswordHashKey []byte        `yaml:"passwordHashKey" env:"PASSWORD_HASH_KEY"`
 	PemFile         string        `yaml:"pemFile" env:"PEM_FILE"`
 	ExpiresIn       time.Duration `yaml:"expiresIn" env:"EXPIRES_IN"`
-	JwtKey          *rsa.PublicKey
+	JwtKey          any
 	Leeway          time.Duration
 	ValidMethods    []string
 	CookieName      string
+}
+
+type Accrual struct {
+	AccrualSystemAddress string `yaml:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
+	PoolSize             int    `yaml:"poolSize" env:"POOL_SIZE"`
 }
 
 func LoadYaml(dir string) (*Config, error) {
@@ -148,7 +156,7 @@ func (c *Config) addCommonFlags() {
 		return nil
 	})
 	flag.Func("r", "Accrual system address", func(flagValue string) error {
-		c.AccrualSystemAddress = flagValue
+		c.Accrual.AccrualSystemAddress = flagValue
 
 		return nil
 	})
@@ -188,6 +196,9 @@ func WithServerFlags() Option {
 
 func WithAuth() Option {
 	return func(cfg *Config) error {
+		if cfg.Auth.PemFile == "" {
+			return nil
+		}
 		pubPEMData, err := os.ReadFile(cfg.Auth.PemFile)
 		if err != nil {
 			return fmt.Errorf("unable to read pem file: %v", err)

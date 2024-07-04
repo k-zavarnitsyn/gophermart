@@ -53,7 +53,6 @@ func (s *ServerApp) Run(ctx context.Context) {
 		s.cfg,
 		s.cnt.Auth(),
 		s.cnt.Gophermart(),
-		s.cnt.Templates(),
 		s.cnt.Pinger(),
 	)
 	router := NewRouter(s.cnt)
@@ -85,6 +84,9 @@ func (s *ServerApp) Run(ctx context.Context) {
 	defer shutdownRelease()
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Errorf("shutdown error: %v", err)
+	}
+	if err := s.cnt.Shutdown(shutdownCtx); err != nil {
+		log.Errorf("container shutdown error: %v", err)
 	}
 
 	fmt.Println("Shutdown complete")

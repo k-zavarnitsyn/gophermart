@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"html/template"
 	"net/http"
 )
 
@@ -29,10 +28,6 @@ type API interface {
 
 	// Withdrawals - получение информации о выводе средств с накопительного счёта пользователем
 	GetWithdrawals(w http.ResponseWriter, r *http.Request)
-}
-
-type Templates interface {
-	Get(path string) *template.Template
 }
 
 type Pinger interface {

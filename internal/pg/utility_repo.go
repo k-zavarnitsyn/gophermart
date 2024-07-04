@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 )
@@ -23,31 +24,63 @@ func (r *UtilityRepository) Ping(ctx context.Context) error {
 
 func (r *UtilityRepository) CreateSchema(ctx context.Context) error {
 	sql := `
-		create table if not exists public.counters
+		create table if not exists "user"
 		(
-			id    uuid primary key,
-			name  varchar          not null,
-			value bigint default 0 not null
+			id uuid not null
+				constraint user_pk
+					primary key,
+			password_sha bytea not null,
+			login varchar(64) not null
 		);
-		create unique index if not exists counters_name_index on public.counters (name);
 		
-		create table if not exists public.gauges
+		create table if not exists "order"
 		(
-			id    uuid primary key,
-			name  varchar          not null,
-			value double precision default 0 not null
+			id uuid not null
+				constraint order_pk
+					primary key,
+			number varchar not null,
+			user_id uuid not null
+				constraint order_user_id_fk
+					references "user",
+			created_at timestamp default now() not null,
+			status order_status default 'NEW'::order_status not null,
+			accrual double precision
 		);
-		create index if not exists gauges_name_index on public.gauges (name);`
+		
+		create index if not exists order_user_id_status_index
+			on "order" (user_id, status);
+		
+		create unique index if not exists order_number_uindex
+			on "order" (number);
+		
+		create table if not exists withdrawn
+		(
+			id uuid not null
+				constraint withdrawn_pk
+					primary key,
+			user_id uuid not null
+				constraint withdrawn_user_id_fk
+					references "user",
+			value double precision not null,
+			created_at timestamp default now() not null,
+			order_number varchar not null
+		);
+		
+		create index if not exists withdrawn_user_id_index
+			on withdrawn (user_id);`
 	_, err := r.db.Exec(ctx, sql)
 
 	return err
 }
 
 func (r *UtilityRepository) SchemaDefined(ctx context.Context) (bool, error) {
-	if exists, err := r.TableExists(ctx, "counters"); err != nil || !exists {
+	if exists, err := r.TableExists(ctx, "order"); err != nil || !exists {
 		return exists, err
 	}
-	if exists, err := r.TableExists(ctx, "gauges"); err != nil || !exists {
+	if exists, err := r.TableExists(ctx, "user"); err != nil || !exists {
+		return exists, err
+	}
+	if exists, err := r.TableExists(ctx, "withdrawn"); err != nil || !exists {
 		return exists, err
 	}
 
@@ -67,18 +100,15 @@ func (r *UtilityRepository) TableExists(ctx context.Context, name string) (bool,
 }
 
 func (r *UtilityRepository) Reset() error {
-	if err := r.Truncate(context.Background(), "counters"); err != nil {
-		return err
-	}
-	if err := r.Truncate(context.Background(), "gauges"); err != nil {
+	if err := r.Truncate(context.Background(), "withdrawn", "order", "user"); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *UtilityRepository) Truncate(ctx context.Context, table string) error {
-	sql := fmt.Sprintf(`truncate table %q;`, table)
+func (r *UtilityRepository) Truncate(ctx context.Context, tables ...string) error {
+	sql := fmt.Sprintf(`truncate table "%s";`, strings.Join(tables, `","`))
 	_, err := r.db.Exec(ctx, sql)
 
 	return err

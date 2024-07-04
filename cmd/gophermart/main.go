@@ -6,12 +6,13 @@ import (
 	"github.com/k-zavarnitsyn/gophermart/internal/app"
 	"github.com/k-zavarnitsyn/gophermart/internal/config"
 	"github.com/k-zavarnitsyn/gophermart/internal/container"
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	cfg, err := config.Load(config.DefaultDir, config.WithServerFlags())
+	cfg, err := config.Load(config.DefaultDir, config.WithServerFlags(), config.WithAuth())
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	cnt := container.New(cfg)

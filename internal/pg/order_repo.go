@@ -141,3 +141,34 @@ func (r *OrderRepo) GetUserWithdrawals(ctx context.Context, userID uuid.UUID) ([
 
 	return values, err
 }
+
+func (r *OrderRepo) SetOrderStatus(ctx context.Context, order *entity.Order, status entity.OrderStatus) error {
+	if order.ID.IsNil() {
+		return fmt.Errorf("%w: unable to set order status: ID not set", domain.Error)
+	}
+
+	sql := `
+		UPDATE "order" SET status = $1
+		WHERE id = $2`
+	_, err := r.db.Exec(ctx, sql, status, order.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (r *OrderRepo) UpdateAttributes(ctx context.Context, order *entity.Order) error {
+	if order.ID.IsNil() {
+		return fmt.Errorf("%w: unable to update order: ID not set", domain.Error)
+	}
+
+	sql := `
+		UPDATE "order" SET (status, accrual) = ($2, $3)
+		WHERE id = $1`
+	_, err := r.db.Exec(ctx, sql, order.ID, order.Status, order.Accrual)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -3,6 +3,9 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
+	"github.com/k-zavarnitsyn/gophermart/internal/utils"
 )
 
 var Error = errors.New("error")
@@ -15,3 +18,15 @@ var ErrOrderCreatedByCurrentUser = fmt.Errorf("%w: created by current user", Err
 var ErrOrderCreatedByOtherUser = fmt.Errorf("%w: created by other user", ErrOrderNumberExists)
 var ErrNotEnoughAccruals = fmt.Errorf("%w: insufficient funds in the account", Error)
 var ErrLoginExists = fmt.Errorf("%w: login already exists", Error)
+
+func SendError(w http.ResponseWriter, err error) {
+	if errors.Is(err, Error) {
+		if errors.Is(err, ErrNotFound) {
+			utils.SendDomainError(w, err, http.StatusNotFound)
+		} else {
+			utils.SendDomainError(w, err, http.StatusBadRequest)
+		}
+	} else {
+		utils.SendInternalError(w, err, err.Error())
+	}
+}

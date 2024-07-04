@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/k-zavarnitsyn/gophermart/internal/config"
+	"github.com/k-zavarnitsyn/gophermart/internal/services/accrual"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/entity"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/repository"
 )
@@ -47,15 +48,23 @@ type service struct {
 	trx           Transactor
 	hasher        *hasher
 	orderNumRegex *regexp.Regexp
+	accrual       accrual.Service
 
 	orderRepo repository.Order
 	userRepo  repository.User
 }
 
-func NewGophermart(cfg *config.Config, trx Transactor, orderRepo repository.Order, userRepo repository.User) Gophermart {
+func NewGophermart(
+	cfg *config.Config,
+	trx Transactor,
+	accrual accrual.Service,
+	orderRepo repository.Order,
+	userRepo repository.User,
+) Gophermart {
 	return &service{
 		cfg:           cfg,
 		trx:           trx,
+		accrual:       accrual,
 		hasher:        &hasher{cfg: &cfg.Auth},
 		orderNumRegex: regexp.MustCompile(`^\s*\d+\s*$`),
 		orderRepo:     orderRepo,
@@ -113,7 +122,11 @@ func (s *service) PostOrder(ctx context.Context, order *entity.Order) error {
 		return err
 	}
 
-	// добавление в пул
+	if err := s.accrual.Send(ctx, &accrual.AccrualEvent{
+		Order: order,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/k-zavarnitsyn/gophermart/internal/services/auth"
 	"github.com/k-zavarnitsyn/gophermart/internal/utils"
+	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/entity"
 )
 
@@ -12,7 +13,7 @@ func (s *gophermartServer) GetWithdrawals(w http.ResponseWriter, r *http.Request
 	clientData := auth.FromContext(r.Context())
 	withdrawals, err := s.gophermart.GetWithdrawals(r.Context(), clientData.UserID)
 	if err != nil {
-		utils.SendError(w, err)
+		domain.SendError(w, err)
 		return
 	}
 

@@ -6,20 +6,20 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/k-zavarnitsyn/gophermart/internal/config"
 	"github.com/k-zavarnitsyn/gophermart/internal/pg"
+	"github.com/k-zavarnitsyn/gophermart/internal/services/accrual"
 	"github.com/k-zavarnitsyn/gophermart/internal/services/auth"
-	"github.com/k-zavarnitsyn/gophermart/internal/templates"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/repository"
 	log "github.com/sirupsen/logrus"
 )
 
 type Container struct {
-	cfg       *config.Config
-	db        *pg.Pool
-	templates *templates.Loader
-	trx       pg.Transactor
+	cfg *config.Config
+	db  *pg.Pool
+	trx pg.Transactor
 
 	auth              *auth.Service
+	accrualService    accrual.Service
 	gophermartService domain.Gophermart
 
 	utilityRepo *pg.UtilityRepository
@@ -31,6 +31,10 @@ func New(cfg *config.Config) *Container {
 	return &Container{
 		cfg: cfg,
 	}
+}
+
+func (c *Container) Shutdown(ctx context.Context) error {
+	return nil
 }
 
 func (c *Container) DB() *pg.Pool {
@@ -68,22 +72,18 @@ func (c *Container) Auth() *auth.Service {
 	return c.auth
 }
 
-func (c *Container) Templates() *templates.Loader {
-	if c.templates == nil {
-		t, err := templates.NewTemplateLoader(templates.Path)
-		if err != nil {
-			panic(err)
-		}
-		c.templates = t
-	}
-
-	return c.templates
-}
-
 func (c *Container) Gophermart() domain.Gophermart {
 	if c.gophermartService == nil {
-		c.gophermartService = domain.NewGophermart(c.cfg, c.Transactor(), c.OrderRepo(), c.UserRepo())
+		c.gophermartService = domain.NewGophermart(c.cfg, c.Transactor(), c.AccrualService(), c.OrderRepo(), c.UserRepo())
 	}
 
 	return c.gophermartService
+}
+
+func (c *Container) AccrualService() accrual.Service {
+	if c.accrualService == nil {
+		c.accrualService = accrual.NewService(&c.cfg.Accrual, c.OrderRepo())
+	}
+
+	return c.accrualService
 }

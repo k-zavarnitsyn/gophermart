@@ -50,8 +50,8 @@ func CloseWithLogging(closeFunc io.Closer, errorMsg ...string) {
 }
 
 func ReadJSON[T any](r io.Reader) (*T, error) {
-	var obj *T
-	err := json.NewDecoder(r).Decode(obj)
+	var obj T
+	err := json.NewDecoder(r).Decode(&obj)
 
-	return obj, err
+	return &obj, err
 }

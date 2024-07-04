@@ -2,7 +2,7 @@ DC = docker compose
 DB_DSN = postgres://postgres:postgres@localhost:5432/gophermart?sslmode=disable
 SERVER_PORT = 8080
 GOPHERMARTTEST = gophermarttest \
-	-test.v -test.run=^TestGophermart$ \
+	-test.v -test.run=^TestGophermart$$ \
 	-gophermart-binary-path=cmd/gophermart/gophermart${EXE_POSTFIX} \
 	-gophermart-host=localhost \
 	-gophermart-port=$(SERVER_PORT) \
@@ -14,7 +14,7 @@ GOPHERMARTTEST = gophermarttest \
 
 ifeq ($(OS),Windows_NT)
     EXE_POSTFIX = .exe
-    ACCRUAL_BIN = accrual_windows_amd64
+    ACCRUAL_BIN = accrual_windows_amd64.exe
 else
     EXE_POSTFIX =
     ACCRUAL_BIN = accrual_linux_amd64

@@ -3,3 +3,11 @@ port: 8080
 scheme: http
 #server:
 #  databaseURI: postgres://postgres:postgres@localhost:5432/gophermart?sslmode=disable
+
+auth:
+  expiresIn: 168h
+  leeway: 10s
+
+accrual:
+  accrualSystemAddress: "http://localhost:8097"
+  poolSize: 100

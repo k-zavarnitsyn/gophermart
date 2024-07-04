@@ -2,11 +2,9 @@ package utils
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
-	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,18 +25,6 @@ func JSONError(w http.ResponseWriter, msg string, status int) {
 	_, err := fmt.Fprintf(w, `{"error": "%s"}`, msg)
 	if err != nil {
 		log.WithError(err).WithField("msg", msg).Error("unable to write json error")
-	}
-}
-
-func SendError(w http.ResponseWriter, err error) {
-	if errors.Is(err, domain.Error) {
-		if errors.Is(err, domain.ErrNotFound) {
-			SendDomainError(w, err, http.StatusNotFound)
-		} else {
-			SendDomainError(w, err, http.StatusBadRequest)
-		}
-	} else {
-		SendInternalError(w, err, err.Error())
 	}
 }
 

@@ -41,7 +41,6 @@ func (s *TestSuite) SetupSuite() {
 		s.cfg,
 		s.cnt.Auth(),
 		s.cnt.Gophermart(),
-		s.cnt.Templates(),
 		s.cnt.Pinger(),
 	)
 	s.router = app.NewRouter(s.cnt)

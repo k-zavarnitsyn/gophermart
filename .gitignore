@@ -27,3 +27,4 @@ vendor/
 /config/certificates/
 /tmp/
 /docker-compose.override.yaml
+!cmd/accrual/accrual_windows_amd64.exe
