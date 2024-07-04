@@ -15,8 +15,9 @@ type Order interface {
 	GetWithdrawnSum(ctx context.Context, userID uuid.UUID) (float64, error)
 	Withdraw(ctx context.Context, w *entity.Withdraw) error
 	GetUserWithdrawals(ctx context.Context, userID uuid.UUID) ([]entity.Withdraw, error)
-	SetOrderStatus(ctx context.Context, order *entity.Order, status entity.OrderStatus) error
+	SetOrderStatus(ctx context.Context, orderNumber string, status entity.OrderStatus) error
 	UpdateAttributes(ctx context.Context, order *entity.Order) error
+	GetOrdersByStatuses(ctx context.Context, statuses []string, exceptNumbers []string, limit int) ([]entity.Order, error)
 }
 
 type User interface {

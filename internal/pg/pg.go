@@ -42,6 +42,10 @@ func (e *retriablePostgresErr) IsRetriable() bool {
 	return pgconn.SafeToRetry(e.err) || (errors.As(e.err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code))
 }
 
+func (e *retriablePostgresErr) Unwrap() error {
+	return e.err
+}
+
 func (p *Pool) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	var tag pgconn.CommandTag
 	err := utils.Retry(func() error {

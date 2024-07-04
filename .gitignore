@@ -24,7 +24,8 @@ vendor/
 
 # Local
 /config/local.yaml
-/config/certificates/
+/config/private/
+!/config/private/default-key.pem
 /tmp/
 /docker-compose.override.yaml
 !cmd/accrual/accrual_windows_amd64.exe

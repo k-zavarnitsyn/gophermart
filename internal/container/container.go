@@ -87,3 +87,9 @@ func (c *Container) AccrualService() accrual.Service {
 
 	return c.accrualService
 }
+
+func (c *Container) SetAccrualService(s accrual.Service) *Container {
+	c.accrualService = s
+
+	return c
+}

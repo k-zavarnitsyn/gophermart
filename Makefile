@@ -42,7 +42,7 @@ lint-fix: ## Linter tries to fix issues automatically
 .PHONY: test
 test: ## Run local tests
 	go test -v ./...
-autotest: ## Run autotest
+autotest: build ## Run autotest
 	$(GOPHERMARTTEST)
 cover:
 	go test -cover ./...

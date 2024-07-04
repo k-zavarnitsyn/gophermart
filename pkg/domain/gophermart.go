@@ -122,9 +122,7 @@ func (s *service) PostOrder(ctx context.Context, order *entity.Order) error {
 		return err
 	}
 
-	if err := s.accrual.Send(ctx, &accrual.AccrualEvent{
-		Order: order,
-	}); err != nil {
+	if err := s.accrual.Send(ctx, order); err != nil {
 		return err
 	}
 
@@ -147,6 +145,7 @@ func (s *service) GetBalance(ctx context.Context, userID uuid.UUID) (*entity.Bal
 		if err != nil {
 			return err
 		}
+		balance.Current -= balance.Withdrawn
 		return nil
 	}); err != nil {
 		return nil, err
@@ -199,23 +198,22 @@ func (s *service) CheckOrderNumber(number string) (bool, error) {
 
 func (s *service) CheckLuhn(number string) bool {
 	sum := 0
-	nDigits := len(number)
-	parity := nDigits % 2
-	var digit int
-	var err error
-	for i := 0; i < nDigits; i++ {
-		digit, err = strconv.Atoi(string(number[i]))
+	isEven := false
+	for i := len(number) - 1; i >= 0; i-- {
+		digit, err := strconv.Atoi(string(number[i]))
 		if err != nil {
 			return false
 		}
-		if i%2 == parity {
+
+		if isEven {
 			digit *= 2
+			if digit > 9 {
+				digit -= 9
+			}
 		}
-		if digit > 9 {
-			digit -= 9
-			sum += digit
-		}
+		sum += digit
+		isEven = !isEven
 	}
 
-	return (sum % 10) == 0
+	return sum%10 == 0
 }

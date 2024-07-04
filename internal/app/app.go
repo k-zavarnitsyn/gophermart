@@ -46,7 +46,7 @@ func (s *ServerApp) Run(ctx context.Context) {
 			}
 		}
 	} else {
-		panic("DB is required")
+		log.Fatal("DB is required")
 	}
 
 	serverAPI := api.New(
@@ -70,7 +70,7 @@ func (s *ServerApp) Run(ctx context.Context) {
 	fmt.Printf("Starting server with config: %+v\n", s.cfg)
 	go func() {
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server starting error: %v", err)
+			log.Errorf("server starting error: %v", err)
 		}
 		log.Println("Stopped serving new connections.")
 	}()

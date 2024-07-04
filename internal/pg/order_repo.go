@@ -38,9 +38,9 @@ func (r *OrderRepo) Insert(ctx context.Context, order *entity.Order) error {
 	}
 
 	sql := `
-		INSERT INTO "order" (id, user_id, number, status)
-		VALUES ($1, $2, $3, $4)`
-	_, err := r.db.Exec(ctx, sql, order.ID, order.UserID, order.Number, order.Status)
+		INSERT INTO "order" (id, user_id, number, status, accrual)
+		VALUES ($1, $2, $3, $4, $5)`
+	_, err := r.db.Exec(ctx, sql, order.ID, order.UserID, order.Number, order.Status, order.Accrual)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation && pgErr.ConstraintName == OrderNumberUniqueContraint {
@@ -85,7 +85,7 @@ func (r *OrderRepo) GetUserOrders(ctx context.Context, userID uuid.UUID) ([]enti
 }
 
 func (r *OrderRepo) GetAccrualsSum(ctx context.Context, userID uuid.UUID) (float64, error) {
-	var value float64
+	var value *float64
 	sql := `SELECT sum(accrual) FROM "order" WHERE user_id = $1 AND status = $2;`
 	err := pgxscan.Get(ctx, r.db, &value, sql, userID, entity.OrderStatusProcessed)
 	if err != nil {
@@ -94,22 +94,28 @@ func (r *OrderRepo) GetAccrualsSum(ctx context.Context, userID uuid.UUID) (float
 		}
 		return 0, err
 	}
+	if value == nil {
+		return 0, nil
+	}
 
-	return value, err
+	return *value, err
 }
 
 func (r *OrderRepo) GetWithdrawnSum(ctx context.Context, userID uuid.UUID) (float64, error) {
-	var value float64
+	var value *float64
 	sql := `SELECT sum(value) FROM withdrawn WHERE user_id = $1;`
-	err := pgxscan.Get(ctx, r.db, &value, sql, userID, entity.OrderStatusProcessed)
+	err := pgxscan.Get(ctx, r.db, &value, sql, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, domain.ErrNotFound
 		}
 		return 0, err
 	}
+	if value == nil {
+		return 0, nil
+	}
 
-	return value, err
+	return *value, err
 }
 
 func (r *OrderRepo) Withdraw(ctx context.Context, w *entity.Withdraw) error {
@@ -142,15 +148,11 @@ func (r *OrderRepo) GetUserWithdrawals(ctx context.Context, userID uuid.UUID) ([
 	return values, err
 }
 
-func (r *OrderRepo) SetOrderStatus(ctx context.Context, order *entity.Order, status entity.OrderStatus) error {
-	if order.ID.IsNil() {
-		return fmt.Errorf("%w: unable to set order status: ID not set", domain.Error)
-	}
-
+func (r *OrderRepo) SetOrderStatus(ctx context.Context, orderNumber string, status entity.OrderStatus) error {
 	sql := `
 		UPDATE "order" SET status = $1
-		WHERE id = $2`
-	_, err := r.db.Exec(ctx, sql, status, order.ID)
+		WHERE number = $2`
+	_, err := r.db.Exec(ctx, sql, status, orderNumber)
 	if err != nil {
 		return err
 	}
@@ -171,4 +173,24 @@ func (r *OrderRepo) UpdateAttributes(ctx context.Context, order *entity.Order) e
 	}
 
 	return nil
+}
+
+func (r *OrderRepo) GetOrdersByStatuses(ctx context.Context, statuses []string, exceptNumbers []string, limit int) ([]entity.Order, error) {
+	var values []entity.Order
+	var err error
+	if len(statuses) == 0 {
+		return nil, fmt.Errorf("unable to get orders: no statuses provided")
+	}
+	if len(exceptNumbers) == 0 {
+		sql := `SELECT * FROM "order" WHERE status = ANY($1) LIMIT $2;`
+		err = pgxscan.Select(ctx, r.db, &values, sql, statuses, limit)
+	} else {
+		sql := `SELECT * FROM "order" WHERE status = ANY($1) and number <> ANY ($2) LIMIT $3;`
+		err = pgxscan.Select(ctx, r.db, &values, sql, statuses, exceptNumbers, limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return values, err
 }

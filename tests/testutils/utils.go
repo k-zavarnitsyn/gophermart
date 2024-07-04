@@ -11,6 +11,9 @@ func GetConfig(configDir string) *config.Config {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := cfg.WithOptions(config.WithAuth()); err != nil {
+		log.Fatal(err)
+	}
 
 	return cfg
 }

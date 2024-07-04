@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/ecdsa"
 	"errors"
 	"flag"
 	"fmt"
@@ -41,9 +42,17 @@ var Default = &Config{
 	},
 	Auth: Auth{
 		PasswordHashKey: []byte("761b13f9e49816b818cc317f73727bbd3cfc23fa"),
-		JwtKey:          []byte("097f71603b8542794505530806457309aa86aedf46973acf72b763ed6fbb95d3"), // for developing purposes
-		ValidMethods:    []string{"RS256"},
+		ExpiresIn:       24 * 7 * time.Hour,
+		Leeway:          time.Second * 10,
+		ValidMethods:    []string{"ES256"},
 		CookieName:      "access_token",
+	},
+	Accrual: Accrual{
+		MaxActiveWorkers:    100,
+		OverloadReportCount: 1000,
+		OverloadReportRPS:   50,
+		PollingInterval:     time.Second,
+		PollingCount:        1000,
 	},
 }
 
@@ -61,6 +70,8 @@ type Config struct {
 	Server  Server  `yaml:"server"`
 	Auth    Auth    `yaml:"auth"`
 	Accrual Accrual `yaml:"accrual"`
+
+	baseDir string
 }
 
 type Log struct {
@@ -78,17 +89,21 @@ type Server struct {
 
 type Auth struct {
 	PasswordHashKey []byte        `yaml:"passwordHashKey" env:"PASSWORD_HASH_KEY"`
-	PemFile         string        `yaml:"pemFile" env:"PEM_FILE"`
+	PemKeyFile      string        `yaml:"pemKeyFile" env:"PEM_KEY_FILE"`
 	ExpiresIn       time.Duration `yaml:"expiresIn" env:"EXPIRES_IN"`
-	JwtKey          any
+	JwtPrivateKey   *ecdsa.PrivateKey
 	Leeway          time.Duration
 	ValidMethods    []string
 	CookieName      string
 }
 
 type Accrual struct {
-	AccrualSystemAddress string `yaml:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
-	PoolSize             int    `yaml:"poolSize" env:"POOL_SIZE"`
+	AccrualSystemAddress string        `yaml:"accrualSystemAddress" env:"ACCRUAL_SYSTEM_ADDRESS"`
+	MaxActiveWorkers     int           `yaml:"maxActiveWorkers" env:"MAX_ACTIVE_WORKERS"`
+	OverloadReportCount  int           `yaml:"overloadReportCount"`
+	OverloadReportRPS    float64       `yaml:"overloadReportRps"`
+	PollingInterval      time.Duration `yaml:"pollingInterval"`
+	PollingCount         int           `yaml:"pollingCount"`
 }
 
 func LoadYaml(dir string) (*Config, error) {
@@ -105,8 +120,19 @@ func LoadYaml(dir string) (*Config, error) {
 		return nil, err
 	}
 	cfg.Address = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	cfg.baseDir = strings.TrimRight(dir, "/")
 
 	return cfg, nil
+}
+
+func (c *Config) WithOptions(opts ...Option) error {
+	for _, opt := range opts {
+		if err := opt(c); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func Load(dir string, opts ...Option) (*Config, error) {
@@ -115,10 +141,8 @@ func Load(dir string, opts ...Option) (*Config, error) {
 		return nil, err
 	}
 	cfg.addCommonFlags()
-	for _, opt := range opts {
-		if err := opt(cfg); err != nil {
-			return nil, err
-		}
+	if err := cfg.WithOptions(opts...); err != nil {
+		return nil, err
 	}
 	flag.Parse()
 	err = cfg.ParseEnv()
@@ -196,14 +220,15 @@ func WithServerFlags() Option {
 
 func WithAuth() Option {
 	return func(cfg *Config) error {
-		if cfg.Auth.PemFile == "" {
-			return nil
+		// for developing and testing
+		if cfg.Auth.PemKeyFile == "" {
+			cfg.Auth.PemKeyFile = cfg.baseDir + "/private/default-key.pem"
 		}
-		pubPEMData, err := os.ReadFile(cfg.Auth.PemFile)
+		pemData, err := os.ReadFile(cfg.Auth.PemKeyFile)
 		if err != nil {
 			return fmt.Errorf("unable to read pem file: %v", err)
 		}
-		cfg.Auth.JwtKey, err = jwt.ParseRSAPublicKeyFromPEM(pubPEMData)
+		cfg.Auth.JwtPrivateKey, err = jwt.ParseECPrivateKeyFromPEM(pemData)
 		if err != nil {
 			return fmt.Errorf("unable to parse pem file: %v", err)
 		}

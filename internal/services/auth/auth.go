@@ -10,8 +10,6 @@ import (
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/entity"
 )
 
-const ErrCodeAccessDenied = "access denied"
-
 var (
 	ErrInvalidToken               = errors.New("invalid token")
 	ErrTokenNotProvided           = errors.New("no token provided")
@@ -21,8 +19,9 @@ var (
 )
 
 type Service struct {
-	cfg       *config.Auth
-	jwtParser *jwt.Parser
+	cfg          *config.Auth
+	jwtParser    *jwt.Parser
+	jwtPublicKey any
 }
 
 func New(config *config.Auth) *Service {
@@ -33,6 +32,7 @@ func New(config *config.Auth) *Service {
 			jwt.WithLeeway(config.Leeway),
 			jwt.WithExpirationRequired(),
 		),
+		jwtPublicKey: config.JwtPrivateKey.Public(),
 	}
 }
 
@@ -61,7 +61,7 @@ func (s *Service) ParseToken(token string) (*JWTClaims, error) {
 
 	claims := &JWTClaims{}
 	jwtToken, err := s.jwtParser.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-		return s.cfg.JwtKey, nil
+		return s.jwtPublicKey, nil
 	})
 	if err != nil {
 		return nil, ErrInvalidToken
@@ -93,8 +93,8 @@ func (s *Service) CreateToken(claims *JWTClaims) (string, error) {
 	if claims.ExpiresAt == nil {
 		return "", ErrTokenExpirationNotProvided
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(s.cfg.JwtKey)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	tokenString, err := token.SignedString(s.cfg.JwtPrivateKey)
 	if err != nil {
 		return "", err
 	}
