@@ -50,7 +50,7 @@ func (p *Pool) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.C
 	var tag pgconn.CommandTag
 	err := utils.Retry(func() error {
 		var err error
-		tag, err = p.Pool.Exec(ctx, sql, arguments...)
+		tag, err = p.txFromContext(ctx).Exec(ctx, sql, arguments...)
 		if err != nil {
 			return &retriablePostgresErr{err}
 		}
@@ -65,7 +65,7 @@ func (p *Pool) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, er
 	var rows pgx.Rows
 	err := utils.Retry(func() error {
 		var err error
-		rows, err = p.Pool.Query(ctx, sql, args...)
+		rows, err = p.txFromContext(ctx).Query(ctx, sql, args...)
 		if err != nil {
 			return &retriablePostgresErr{err}
 		}
@@ -93,4 +93,12 @@ func (p *Pool) Transaction(ctx context.Context, f func(ctx context.Context, tx p
 	}
 
 	return f(ctx, tx)
+}
+
+func (p *Pool) txFromContext(ctx context.Context) Querier {
+	if tx := TxFromContext(ctx); tx != nil {
+		return tx
+	}
+
+	return p.Pool
 }
