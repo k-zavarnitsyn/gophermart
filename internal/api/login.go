@@ -19,14 +19,17 @@ func (s *gophermartServer) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := s.gophermart.Login(r.Context(), loginReq)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			utils.SendErrorMsg(w, err, "", http.StatusUnauthorized)
+			utils.SendDomainError(w, err, http.StatusUnauthorized)
+		} else {
+			domain.SendError(w, err)
 		}
-		domain.SendError(w, err)
+		return
 	}
 
 	cookie, err := s.auth.CreateTokenCookie(user)
 	if err != nil {
 		utils.SendInternalError(w, err, "error creating token")
+		return
 	}
 	http.SetCookie(w, cookie)
 }

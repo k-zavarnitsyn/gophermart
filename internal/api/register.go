@@ -19,13 +19,16 @@ func (s *gophermartServer) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrLoginExists) {
 			utils.SendDomainError(w, err, http.StatusConflict)
+		} else {
+			domain.SendError(w, err, "error registering user")
 		}
-		utils.SendInternalError(w, err, "error registering user")
+		return
 	}
 
 	cookie, err := s.auth.CreateTokenCookie(user)
 	if err != nil {
-		utils.SendInternalError(w, err, "error creating token")
+		domain.SendError(w, err, "error creating token")
+		return
 	}
 	http.SetCookie(w, cookie)
 }

@@ -56,8 +56,10 @@ func SendResponse(w http.ResponseWriter, obj any, status int) {
 	data, err := json.Marshal(obj)
 	if err != nil {
 		SendInternalError(w, err, "unable to marshal object")
+		return
 	}
 	if _, err := w.Write(data); err != nil {
 		SendInternalError(w, err, "unable to write response")
+		return
 	}
 }

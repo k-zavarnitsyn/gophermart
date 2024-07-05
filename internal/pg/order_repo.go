@@ -161,7 +161,7 @@ func (r *OrderRepo) SetOrderStatus(ctx context.Context, orderNumber string, stat
 }
 func (r *OrderRepo) UpdateAttributes(ctx context.Context, order *entity.Order) error {
 	if order.ID.IsNil() {
-		return fmt.Errorf("%w: unable to update order: ID not set", domain.Error)
+		return domain.NewError("unable to update order: ID not set")
 	}
 
 	sql := `

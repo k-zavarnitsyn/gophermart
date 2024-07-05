@@ -1,21 +1,13 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/k-zavarnitsyn/gophermart/internal/config"
+	"github.com/k-zavarnitsyn/gophermart/pkg/domain"
 	"github.com/k-zavarnitsyn/gophermart/pkg/domain/entity"
-)
-
-var (
-	ErrInvalidToken               = errors.New("invalid token")
-	ErrTokenNotProvided           = errors.New("no token provided")
-	ErrUserIDNotProvided          = errors.New("no token user ID provided")
-	ErrUserLoginNotProvided       = errors.New("no token user login provided")
-	ErrTokenExpirationNotProvided = errors.New("no token expiration time provided")
 )
 
 type Service struct {
@@ -56,7 +48,7 @@ func (s *Service) GetToken(r *http.Request) (string, error) {
 
 func (s *Service) ParseToken(token string) (*JWTClaims, error) {
 	if token == "" {
-		return nil, ErrTokenNotProvided
+		return nil, domain.ErrTokenNotProvided
 	}
 
 	claims := &JWTClaims{}
@@ -64,10 +56,10 @@ func (s *Service) ParseToken(token string) (*JWTClaims, error) {
 		return s.jwtPublicKey, nil
 	})
 	if err != nil {
-		return nil, ErrInvalidToken
+		return nil, domain.ErrInvalidToken
 	}
 	if !jwtToken.Valid {
-		return nil, ErrInvalidToken
+		return nil, domain.ErrInvalidToken
 	}
 
 	return claims, nil
@@ -85,13 +77,13 @@ func (s *Service) NewClaims(user *entity.User) *JWTClaims {
 
 func (s *Service) CreateToken(claims *JWTClaims) (string, error) {
 	if claims.UserID.IsNil() {
-		return "", ErrUserIDNotProvided
+		return "", domain.ErrUserIDNotProvided
 	}
 	if claims.Login == "" {
-		return "", ErrUserLoginNotProvided
+		return "", domain.ErrUserLoginNotProvided
 	}
 	if claims.ExpiresAt == nil {
-		return "", ErrTokenExpirationNotProvided
+		return "", domain.ErrTokenExpirationNotProvided
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 	tokenString, err := token.SignedString(s.cfg.JwtPrivateKey)

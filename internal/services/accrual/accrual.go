@@ -61,11 +61,8 @@ func NewService(cfg *config.Accrual, orderRepo repository.Order) Service {
 
 func (s *service) runTicker() {
 	go func() {
-		for {
-			select {
-			case t := <-s.ticker.C:
-				s.processTick(t)
-			}
+		for range s.ticker.C {
+			s.processTick()
 		}
 	}()
 }
@@ -175,7 +172,7 @@ func (s *service) processError(ctx context.Context, err error, order *entity.Ord
 	// }
 }
 
-func (s *service) processTick(t time.Time) {
+func (s *service) processTick() {
 	// only one active processor
 	if !s.tickMu.TryLock() {
 		return
