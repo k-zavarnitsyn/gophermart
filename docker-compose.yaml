@@ -1,0 +1,21 @@
+services:
+  postgresql:
+    image: postgres:16.2-alpine3.19
+    #ports: # should be overwritten with docker-compose.override.yaml
+    # - 5432:5432
+    environment:
+      - POSTGRES_DB=gophermart
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+    volumes:
+      - postgresql-volume:/var/lib/postgresql:rw
+      - ./docker/postgres/postgresql.conf.sample:/usr/share/postgresql/postgresql.conf.sample
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgresql-volume:
