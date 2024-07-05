@@ -24,7 +24,6 @@ func (r *UtilityRepository) Ping(ctx context.Context) error {
 
 func (r *UtilityRepository) CreateSchema(ctx context.Context) error {
 	sql := `
-		create type order_status as enum ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');
 		create table if not exists "user"
 		(
 			id uuid not null
